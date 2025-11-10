@@ -3,32 +3,46 @@ name: NextJs Build with Cache and Artifact
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:  # 👈 allows manual trigger from the Actions tab
 
 jobs:
   build:
+    name: 🏗️ Build Next.js App
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout your repository
       - name: Checkout Repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
-      - name: Setup NodeJs
-        uses: actions/setup-node@v6.0.0
+      # 2️⃣ Setup Node.js with npm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache:  'npm'
+          cache: npm
 
+      # 3️⃣ Install dependencies
       - name: Install Dependencies
-        run: npm install
+        run: npm ci  # faster & cleaner than 'npm install' for CI
 
+      # 4️⃣ Build your Next.js app
       - name: Build the App
-        run: npm run build
+        run: |
+          npm run build
+          # If you use next export (for static hosting)
+          if [ -f "next.config.js" ] && grep -q "exportPathMap" next.config.js; then
+            npm run export
+          fi
 
-      - name: Store Build on Artifact
-        uses: actions/upload-artifact@v5.0.0
+      # 5️⃣ Upload build output as artifact
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v5
         with:
           name: NextJs-Build
-          path: out/
-
-          
-          
+          # Automatically detect correct folder
+          path: |
+            out/
+            .next/
+          if-no-files-found: warn
+          retention-days: 7
